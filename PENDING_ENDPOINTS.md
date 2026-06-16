@@ -6,35 +6,58 @@ the endpoint(s) required to finish the feature properly.
 
 ---
 
-## 1. Buy Now — direct (card/Paystack) checkout
+## 1. Buy Now — direct (card/Paystack) checkout  ✅ IMPLEMENTED
 
-**Why:** The feed's **Buy Now** button currently adds the item to the cart and then
-calls the existing wallet checkout (`POST /payment/create-order/`), i.e. it pays
-from the wallet balance. There is no way to pay a single item directly via card.
-
-**Need:** an endpoint that initiates payment for one product (no cart) and returns
-a Paystack authorization URL / reference to redirect to.
+**Status:** Done. Instead of a separate `/payment/buy-now/`, the existing
+`POST /payment/create-order/` was extended to accept a direct `items` payload and
+a `payment_method` (`wallet` | `card`). The frontend no longer needs the
+add-to-cart + create-order workaround for Buy Now.
 
 ```
-POST /payment/buy-now/
+POST /payment/create-order/
 Auth: required
-Body:
+Body (direct purchase):
 {
-  "product_id": 55,
-  "quantity": 1
+  "items": [{ "product_id": 55, "quantity": 1 }],
+  "payment_method": "card",          // "wallet" (default) or "card"
+  "callback_url": "https://app/.../return"   // card only, optional
 }
-Response (200):
+
+Wallet response (200): orders created immediately, buyer wallet debited.
 {
+  "message": "Orders created. Awaiting QR code validation.",
+  "payment_method": "wallet",
+  "total_amount_naira": 1500.00,
+  "orders_created": 1,
+  "orders": [{ "order_id": "ORD-abc1234", "vendor_id": 42, "amount": 1500.00, "status": "pending" }]
+}
+
+Card response (200): no order yet — redirect the buyer to Paystack.
+{
+  "message": "Payment initialized.",
+  "payment_method": "card",
   "authorization_url": "https://checkout.paystack.com/abc123",
   "reference": "ref_abc123",
   "amount_naira": 1500.00
 }
 ```
 
+**Card confirmation (init-then-verify):**
+```
+GET /payment/verify-purchase/<reference>
+Auth: required
+```
+Verifies the Paystack transaction and only then creates the Order(s) + HELD
+escrow from the stashed `PendingPurchase`. Idempotent (safe to call twice). No
+order exists until payment is confirmed.
+
 **Notes:**
-- Should create a pending order tied to the reference, then confirm it on the
-  Paystack webhook / verify callback (reuse the existing payment verification flow).
-- Avoids the add-to-cart + create-order workaround the frontend does today.
+- `cart_id` still works exactly as before for cart checkout; `items` takes
+  precedence when both are sent.
+- Prices/vendors are read from live `Product` rows, never trusted from the client.
+- Order materialization (orders + items + escrow + vendor notification) is shared
+  between the wallet and card rails via `materialize_orders()` in
+  `paymentapp/views.py`.
 
 ---
 
