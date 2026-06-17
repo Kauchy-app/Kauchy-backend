@@ -13,6 +13,7 @@ from .views import (
     PostCommentsView,
     PostBookmarkToggleView,
     BookmarksListView,
+    KauchSearchView,
 )
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     path('posts/<int:post_id>/bookmark/', PostBookmarkToggleView.as_view(), name='kauch-post-bookmark'),
     path('posts/<int:post_id>/comments/', PostCommentsView.as_view(), name='kauch-post-comments'),
     path('posts/<int:post_id>/', PostDetailView.as_view(), name='kauch-post-detail'),
+    path('search/', KauchSearchView.as_view(), name='kauch-search'),
     path('<int:kauch_id>/', KauchDetailView.as_view(), name='kauch-detail'),
     path('<int:kauch_id>/follow/', KauchFollowToggleView.as_view(), name='kauch-follow'),
     path('<int:kauch_id>/posts/', KauchPostsView.as_view(), name='kauch-posts'),
