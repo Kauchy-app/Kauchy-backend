@@ -112,6 +112,20 @@ class PostComment(models.Model):
         return f"Comment {self.pk} by {self.user} on post {self.post_id}"
 
 
+class Bookmark(models.Model):
+    """A user saves (bookmarks) a post. Server-side so it syncs across devices."""
+    post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('post', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} bookmarked post {self.post_id}"
+
+
 class KauchFollow(models.Model):
     kauch = models.ForeignKey(KauchModel, on_delete=models.CASCADE, related_name='followers')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_follows')

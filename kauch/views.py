@@ -15,6 +15,7 @@ from .models import (
     PostLike,
     PostComment,
     KauchFollow,
+    Bookmark,
     MAX_KAUCHES_PER_VENDOR,
 )
 from .serializers import (
@@ -321,6 +322,44 @@ class PostLikeToggleView(APIView):
             {"liked": True, "likes_count": post.likes_count},
             status=status.HTTP_200_OK,
         )
+
+
+class PostBookmarkToggleView(APIView):
+    """Toggle a bookmark (save) on a post."""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Toggle bookmark on a post",
+        responses={200: dict},
+    )
+    def post(self, request, post_id):
+        post = get_object_or_404(PostModel, pk=post_id)
+        bookmark, created = Bookmark.objects.get_or_create(post=post, user=request.user)
+
+        if not created:
+            bookmark.delete()
+            return Response({"bookmarked": False}, status=status.HTTP_200_OK)
+
+        return Response({"bookmarked": True}, status=status.HTTP_200_OK)
+
+
+class BookmarksListView(APIView):
+    """List the authenticated user's bookmarked posts."""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="List my bookmarked posts",
+        responses={200: PostSerializer(many=True)},
+    )
+    def get(self, request):
+        posts = (
+            PostModel.objects.filter(bookmarks__user=request.user)
+            .select_related('kauch')
+            .prefetch_related('tagged_products')
+            .order_by('-bookmarks__created_at')
+        )
+        serializer = PostSerializer(posts, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PostCommentsView(APIView):
