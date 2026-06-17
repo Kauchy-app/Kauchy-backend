@@ -1,5 +1,7 @@
 import json
 
+from django.db.models import F
+
 import cloudinary
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -322,6 +324,23 @@ class PostLikeToggleView(APIView):
             {"liked": True, "likes_count": post.likes_count},
             status=status.HTTP_200_OK,
         )
+
+
+
+class PostShareView(APIView):
+    """Record a share event on a post — atomically increments shares_count."""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Share a post",
+        description="Increments the post's share counter by 1 and returns the updated count.",
+        responses={200: dict},
+    )
+    def post(self, request, post_id):
+        post = get_object_or_404(PostModel, pk=post_id)
+        PostModel.objects.filter(pk=post.pk).update(shares_count=F('shares_count') + 1)
+        post.refresh_from_db(fields=['shares_count'])
+        return Response({"shares_count": post.shares_count}, status=status.HTTP_200_OK)
 
 
 class PostBookmarkToggleView(APIView):
