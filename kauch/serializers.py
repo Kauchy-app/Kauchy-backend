@@ -43,6 +43,7 @@ class PostSerializer(serializers.ModelSerializer):
     kauch = KauchMiniSerializer(read_only=True)
     tagged_products = TaggedProductSerializer(many=True, read_only=True)
     is_liked_by_user = serializers.SerializerMethodField()
+    is_bookmarked_by_user = serializers.SerializerMethodField()
     media_url = serializers.SerializerMethodField()
     media_urls = serializers.SerializerMethodField()
 
@@ -51,7 +52,7 @@ class PostSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'kauch', 'description', 'media_type', 'media_url', 'media_urls',
             'tagged_products', 'likes_count', 'comments_count',
-            'is_liked_by_user', 'created_at',
+            'is_liked_by_user', 'is_bookmarked_by_user', 'created_at',
         ]
 
     def get_media_url(self, obj):
@@ -73,6 +74,12 @@ class PostSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
+        return False
+
+    def get_is_bookmarked_by_user(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.bookmarks.filter(user=request.user).exists()
         return False
 
 
