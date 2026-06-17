@@ -42,7 +42,7 @@ Card response (200): no order yet — redirect the buyer to Paystack.
 }
 ```
 
-**Card confirmation (init-then-verify):**
+## Card confirmation (init-then-verify):  ✅ IMPLEMENTED
 ```
 GET /payment/verify-purchase/<reference>
 Auth: required
