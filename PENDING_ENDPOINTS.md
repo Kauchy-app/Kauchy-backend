@@ -61,7 +61,7 @@ order exists until payment is confirmed.
 
 ---
 
-## 2. Bookmarks (server-side persistence)
+## 2. Bookmarks (server-side persistence)  ✅ IMPLEMENTED
 
 **Why:** Bookmarks (save a Kauch post) are currently stored only in the browser
 (`localStorage`), so they don't sync across devices or survive a cache clear.
@@ -80,7 +80,7 @@ GET    /kauch/bookmarks/                   → list the user's bookmarked posts 
 
 ---
 
-## 3. Share count tracking
+## 3. Share count tracking  ✅ IMPLEMENTED
 
 **Why:** The feed shows a share count, but it is always `0` — sharing isn't recorded
 server-side. `shares_count` is hard-coded in the frontend mapping.

@@ -51,7 +51,7 @@ class PostSerializer(serializers.ModelSerializer):
         model = PostModel
         fields = [
             'id', 'kauch', 'description', 'media_type', 'media_url', 'media_urls',
-            'tagged_products', 'likes_count', 'comments_count',
+            'tagged_products', 'likes_count', 'comments_count', 'shares_count',
             'is_liked_by_user', 'is_bookmarked_by_user', 'created_at',
         ]
 

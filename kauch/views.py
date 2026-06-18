@@ -1,12 +1,15 @@
 import json
 
+from django.db.models import F, Q
+
 import cloudinary
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.openapi import OpenApiTypes
 
 from Products_app.models import Product
 from .models import (
@@ -324,6 +327,23 @@ class PostLikeToggleView(APIView):
         )
 
 
+
+class PostShareView(APIView):
+    """Record a share event on a post — atomically increments shares_count."""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Share a post",
+        description="Increments the post's share counter by 1 and returns the updated count.",
+        responses={200: dict},
+    )
+    def post(self, request, post_id):
+        post = get_object_or_404(PostModel, pk=post_id)
+        PostModel.objects.filter(pk=post.pk).update(shares_count=F('shares_count') + 1)
+        post.refresh_from_db(fields=['shares_count'])
+        return Response({"shares_count": post.shares_count}, status=status.HTTP_200_OK)
+
+
 class PostBookmarkToggleView(APIView):
     """Toggle a bookmark (save) on a post."""
     permission_classes = [IsAuthenticated]
@@ -403,3 +423,36 @@ class PostCommentsView(APIView):
         comment = PostComment.objects.create(post=post, user=request.user, text=text, parent=parent)
         serializer = CommentSerializer(comment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class KauchSearchView(APIView):
+    @extend_schema(
+        summary="Search Kauches",
+        description=(
+            "Filter Kauches whose name or description contains the query string. "
+            "Returns up to 20 results ordered by follower count (most popular first). "
+            "An empty or missing `q` returns an empty list."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name='q',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Search term (matched against name and description)',
+                required=False,
+            )
+        ],
+        responses={200: KauchSerializer(many=True)},
+    )
+    def get(self, request):
+        q = (request.query_params.get('q') or '').strip()
+        if not q:
+            return Response([], status=status.HTTP_200_OK)
+
+        kauches = (
+            KauchModel.objects
+            .filter(Q(name__icontains=q) | Q(description__icontains=q))
+            .order_by('-followers_count')[:20]
+        )
+        serializer = KauchSerializer(kauches, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

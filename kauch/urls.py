@@ -9,9 +9,11 @@ from .views import (
     KauchPostsView,
     PostDetailView,
     PostLikeToggleView,
+    PostShareView,
     PostCommentsView,
     PostBookmarkToggleView,
     BookmarksListView,
+    KauchSearchView,
 )
 
 urlpatterns = [
@@ -21,9 +23,11 @@ urlpatterns = [
     path('feed/', KauchFeedView.as_view(), name='kauch-feed'),
     path('bookmarks/', BookmarksListView.as_view(), name='kauch-bookmarks'),
     path('posts/<int:post_id>/like/', PostLikeToggleView.as_view(), name='kauch-post-like'),
+    path('posts/<int:post_id>/share/', PostShareView.as_view(), name='kauch-post-share'),
     path('posts/<int:post_id>/bookmark/', PostBookmarkToggleView.as_view(), name='kauch-post-bookmark'),
     path('posts/<int:post_id>/comments/', PostCommentsView.as_view(), name='kauch-post-comments'),
     path('posts/<int:post_id>/', PostDetailView.as_view(), name='kauch-post-detail'),
+    path('search/', KauchSearchView.as_view(), name='kauch-search'),
     path('<int:kauch_id>/', KauchDetailView.as_view(), name='kauch-detail'),
     path('<int:kauch_id>/follow/', KauchFollowToggleView.as_view(), name='kauch-follow'),
     path('<int:kauch_id>/posts/', KauchPostsView.as_view(), name='kauch-posts'),
