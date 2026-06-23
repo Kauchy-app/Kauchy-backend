@@ -89,7 +89,7 @@ class SearchSuggestionsView(APIView):
         # Get vendors from products the user has viewed
         viewed_product_vendors = ProductView.objects.filter(
             user=user
-        ).values_list('product__vendor_name', flat=True).distinct()
+        ).values_list('product__vendor_id', flat=True).distinct()
         
         # Get vendors from contents the user has viewed
         viewed_content_vendors = ContentView.objects.filter(
@@ -111,8 +111,8 @@ class SearchSuggestionsView(APIView):
                 Q(product_name__icontains=query) | 
                 Q(description__icontains=query) |
                 Q(category__icontains=query)
-            ).values_list('vendor_name', flat=True).distinct()
-            
+            ).values_list('vendor_id', flat=True).distinct()
+
             vendor_query = vendor_query.filter(user__id__in=matching_vendors)
         else:
             # If no query, show vendors based on user's view history
@@ -128,7 +128,7 @@ class SearchSuggestionsView(APIView):
             'bio': profile.bio,
             'followers_count': profile.followers_count,
             'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
-            'total_products': Product.objects.filter(vendor_name=profile.user).count()
+            'total_products': Product.objects.filter(vendor_id=profile.user).count()
         } for profile in suggested_vendors]
         
         # Get suggested products
@@ -138,19 +138,19 @@ class SearchSuggestionsView(APIView):
                 Q(product_name__icontains=query) | 
                 Q(description__icontains=query) |
                 Q(category__icontains=query)
-            ).select_related('vendor_name')[:15]
+            ).select_related('vendor_id')[:15]
         else:
             # Show products from vendors user has interacted with
             suggested_products = Product.objects.filter(
-                vendor_name__id__in=vendor_ids
-            ).select_related('vendor_name')[:15]
+                vendor_id__id__in=vendor_ids
+            ).select_related('vendor_id')[:15]
         
         product_serializer = ProductSerializer(suggested_products, many=True)
         
         # Add vendor username to each product
         products_data = product_serializer.data
         for prod, item in zip(suggested_products, products_data):
-            username = prod.vendor_name.username if prod.vendor_name else None
+            username = prod.vendor_id.username if prod.vendor_id else None
             item['vendor_name'] = username
             item['vendor_username'] = username
         
@@ -205,7 +205,7 @@ class UserViewHistoryView(APIView):
         # Get recent product views
         product_views = ProductView.objects.filter(
             user=request.user
-        ).select_related('product', 'product__vendor_name')[:20]
+        ).select_related('product', 'product__vendor_id')[:20]
         
         # Get recent content views
         content_views = ContentView.objects.filter(

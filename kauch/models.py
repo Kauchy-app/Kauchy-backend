@@ -50,6 +50,7 @@ class PostModel(models.Model):
     likes_count = models.PositiveIntegerField(default=0)
     comments_count = models.PositiveIntegerField(default=0)
     shares_count = models.PositiveIntegerField(default=0)
+    bookmarks_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -122,6 +123,19 @@ class Bookmark(models.Model):
     class Meta:
         unique_together = ('post', 'user')
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            self.post.bookmarks_count = self.post.bookmarks.count()
+            self.post.save(update_fields=['bookmarks_count'])
+
+    def delete(self, *args, **kwargs):
+        post = self.post
+        super().delete(*args, **kwargs)
+        post.bookmarks_count = post.bookmarks.count()
+        post.save(update_fields=['bookmarks_count'])
 
     def __str__(self):
         return f"{self.user} bookmarked post {self.post_id}"
