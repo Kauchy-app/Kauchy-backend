@@ -37,18 +37,21 @@ class ValidateOrderQRCodeView(APIView):
 
         if not order_id:
             return Response({"error":"Order ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            order = Order.objects.select_for_update().get(id=order_id)
-        except Order.DoesNotExist:
-            return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        if order.buyer_id != buyer.id:
-            return Response({"error":"You are not authorized to validate this order"}, status=status.HTTP_403_FORBIDDEN)
-        if order.status != "pending":
-            return Response({"error":f"Order already {order.status}",
-                             "current_status":order.status},status=status.HTTP_400_BAD_REQUEST)
-        
         with db_transaction.atomic():
+            try:
+                order = Order.objects.select_for_update().get(id=order_id)
+            except Order.DoesNotExist:
+                return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if order.buyer_id != buyer.id:
+                return Response({"error":"You are not authorized to validate this order"}, status=status.HTTP_403_FORBIDDEN)
+            # Completion is valid from any active pre-completion state. The vendor
+            # may have already accepted the order ('accepted'/'awaiting'); only
+            # terminal states ('completed', 'expired') block a QR validation.
+            if order.status not in ("pending", "accepted", "awaiting"):
+                return Response({"error":f"Order already {order.status}",
+                                 "current_status":order.status},status=status.HTTP_400_BAD_REQUEST)
+
             try:
                 escrow = EscrowWallet.objects.select_for_update().get(order=order)
             except EscrowWallet.DoesNotExist:
