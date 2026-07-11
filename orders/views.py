@@ -8,7 +8,7 @@ from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction as db_transaction
 from wallet.models import EscrowWallet
-from paymentapp.models import VendorWallet
+from paymentapp.models import VendorWallet, BuyerWallet, Transaction
 from django.db.models import F
 from notification.utils import send_notification_to_user
 from django.utils import timezone
@@ -64,11 +64,29 @@ class ValidateOrderQRCodeView(APIView):
             
             VendorWallet.objects.filter(vendor_id=order.vendor_id).update(
                 balance= F('balance') + escrow.amount)
-            
+
+            # Record the sale as Transaction rows so analytics (revenue, units
+            # sold, top products) have data to aggregate. One row per line item
+            # keeps per-product reporting accurate.
+            buyer_wallet = BuyerWallet.objects.filter(user=order.buyer).first()
+            for item in order.items.all():
+                Transaction.objects.get_or_create(
+                    reference=f"PURCHASE-{order.id}-{item.id}",
+                    defaults={
+                        'buyer': buyer_wallet,
+                        'vendor': vendor_wallet,
+                        'product': item.product,
+                        'amount': item.price * item.quantity,
+                        'quantity': item.quantity,
+                        'transaction_type': 'PURCHASE',
+                        'status': 'COMPLETED',
+                    },
+                )
+
             escrow.status = "RELEASED"
             escrow.released_at = timezone.now()
-            escrow.save()   
-            order.status = "COMPLETED"
+            escrow.save()
+            order.status = "completed"
             order.save()
 
             send_notification_to_user(
