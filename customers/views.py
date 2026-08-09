@@ -28,7 +28,7 @@ class TopCustomersView(APIView):
             responses={200: TopCustomersSerializer(many=True)},
     )
     def get(self, request):
-        top_customers = TopCustomers.objects.all().order_by('-total_purchases')[:10]
+        top_customers = TopCustomers.objects.select_related('customer').all().order_by('-total_purchases')[:10]
         serializer = TopCustomersSerializer(top_customers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -40,7 +40,7 @@ class TopVendorsView(APIView):
             responses={200: TopVendorsSerializer(many=True)},
     )
     def get(self, request):
-        top_vendors = TopVendors.objects.all().order_by('-total_sales')[:10]
+        top_vendors = TopVendors.objects.select_related('vendor').all().order_by('-total_sales')[:10]
         serializer = TopVendorsSerializer(top_vendors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -575,7 +575,7 @@ class GetUserProfile(APIView):
 
 class GetVendorContents(APIView):
     def get(self, request, pk):
-        contents = VendorContents.objects.filter(user=pk)
+        contents = VendorContents.objects.select_related('user').filter(user=pk)
         serializer = VendorContentSerializer(contents, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -624,7 +624,7 @@ class IncrementContentView(APIView):
 
 class GetAllContents(APIView):
     def get(self, request):
-        contents = VendorContents.objects.all().order_by('-id')[:100]
+        contents = VendorContents.objects.select_related('user').all().order_by('-id')[:100]
         serializer = VendorContentSerializer(contents, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 

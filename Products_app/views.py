@@ -256,7 +256,7 @@ class AllProductsView(APIView):
             # print("hi")
             products = personalized_feed(user)
         else:
-            products= Product.objects.all()
+            products= Product.objects.select_related('vendor_id').all()
         serializer= ProductSerializer(products,many=True, context={'request': request})
         return Response(serializer.data)
 
