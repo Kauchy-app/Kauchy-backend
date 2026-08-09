@@ -26,7 +26,7 @@ class CustomUserModel(AbstractUser):
     institute = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=20)
     rating = models.PositiveIntegerField(default=0)
-    profile_url = models.TextField(null=True, default="https://icuklzexzhusblkzglnr.supabase.co/storage/v1/object/public/marketplace/profiie_pictures/freepik__adjust__23179.png")
+    profile_url = models.TextField(null=True, default="https://dqkuddmtpxwqyjbkamcb.supabase.co/storage/v1/object/public/marketplace/profile_pictures/photo_2026-08-09_18-29-11.jpg")
     bio = models.TextField(null=True, blank=True)
     online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)

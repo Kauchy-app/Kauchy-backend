@@ -3,6 +3,10 @@ __pycache__/
 env/
 venv/
 
+# test django
+test_django.py
+test_django_none.py
+test_schema.py
 
 .env
 .env
