@@ -22,7 +22,7 @@ class GetAllOrders(APIView):
         user = request.user
         data = Order.objects.filter(
             Q(vendor=user) | Q(buyer=user)
-        ).select_related("vendor", "buyer").prefetch_related("items", "items__product")
+        ).select_related("vendor", "buyer").prefetch_related("items", "items__product").order_by('-created_at')
 
         serializer = OrderSerializer(data, many=True)
 
@@ -90,6 +90,8 @@ class ValidateOrderQRCodeView(APIView):
             escrow.released_at = timezone.now()
             escrow.save()
             order.status = "completed"
+            order.is_read_by_buyer = False
+            order.is_read_by_vendor = False
             order.save()
 
             send_notification_to_user(
@@ -136,6 +138,7 @@ class VendorRespondOrderView(APIView):
 
             if action == 'accept':
                 order.status = 'accepted'
+                order.is_read_by_buyer = False
                 order.save()
                 send_notification_to_user(
                     user=order.buyer,
@@ -184,3 +187,28 @@ class VendorRespondOrderView(APIView):
                     link=f"/orders?id={order_id}"
                 )
                 return Response({"message": "Order rejected and deleted. Buyer refunded.", "status": "deleted"})
+
+class MarkOrderReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        order_id = request.data.get("order_id")
+        if not order_id:
+            return Response({"error": "Order ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        user = request.user
+        if order.buyer == user:
+            order.is_read_by_buyer = True
+            order.save(update_fields=['is_read_by_buyer'])
+        elif order.vendor == user:
+            order.is_read_by_vendor = True
+            order.save(update_fields=['is_read_by_vendor'])
+        else:
+            return Response({"error": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+            
+        return Response({"message": "Order marked as read"}, status=status.HTTP_200_OK)

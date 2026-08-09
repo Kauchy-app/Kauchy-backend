@@ -35,6 +35,9 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    is_read_by_buyer = models.BooleanField(default=True)
+    is_read_by_vendor = models.BooleanField(default=False)
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
