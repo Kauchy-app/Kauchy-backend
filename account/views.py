@@ -38,6 +38,18 @@ def _unique_username(base):
     return candidate
 
 
+class CheckEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        exists = User.objects.filter(email=email).exists()
+        return Response({"exists": exists}, status=status.HTTP_200_OK)
+
+
 class GoogleAuthView(APIView):
     """Sign in / sign up with a Google ID token (credential from GIS).
 
