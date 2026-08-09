@@ -179,11 +179,11 @@ class KauchFollowToggleView(APIView):
 
 
 class KauchFeedView(APIView):
-    """2.1 Get the homepage feed (chronological)."""
+    """2.1 Get the homepage feed (randomized)."""
 
     @extend_schema(
         summary="Kauch feed",
-        description="Returns a chronological feed of Kauch posts.",
+        description="Returns a randomized feed of Kauch posts.",
         responses={200: PostSerializer(many=True)},
     )
     def get(self, request):
@@ -191,6 +191,7 @@ class KauchFeedView(APIView):
             PostModel.objects.select_related('kauch')
             .prefetch_related('tagged_products')
             .all()
+            .order_by('?')
         )
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
