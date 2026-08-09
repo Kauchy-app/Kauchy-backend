@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from paymentapp.models import BuyerWallet,VendorWallet
 from django.contrib.auth import get_user_model
@@ -16,6 +17,7 @@ ESCROW_STATUS = [
 ]
 
 class TopUpMOdel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     buyer = models.ForeignKey(BuyerWallet,on_delete=models.CASCADE,null=True, related_name="topup_wallet")
     vendor = models.ForeignKey(VendorWallet,on_delete=models.CASCADE,null=True, related_name="vendor_topup_wallet")
     amount=models.DecimalField(max_digits=12, decimal_places=2)
@@ -25,6 +27,7 @@ class TopUpMOdel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class EscrowWallet(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.OneToOneField('orders.Order', on_delete=models.CASCADE, related_name='escrow')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     held_at = models.DateTimeField(auto_now_add=True)

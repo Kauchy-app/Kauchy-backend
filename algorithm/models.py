@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from Products_app.models import Product
 from django.contrib.auth import get_user_model
@@ -7,12 +8,14 @@ User = get_user_model()
 # Create your models here.
 
 class UserCategoryModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user")
     category = models.CharField(max_length=100)
     view_count = models.PositiveIntegerField(default=1)
 
 
 class UserVendorAffinity(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """How much a user gravitates toward a vendor, raised when the user LIKES
     that vendor's products or content (never on passive views). Used to boost
     the vendor's items in the personalized feed."""

@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 
 # Create your models here.
@@ -7,6 +8,7 @@ from django.conf import settings
 from Products_app.models import Product
 
 class DailyAnalytics(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """Daily snapshot of key metrics."""
     date = models.DateField(auto_now_add=True, unique=True)
     total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -23,6 +25,7 @@ class DailyAnalytics(models.Model):
         return f"Analytics {self.date}"
 
 class ProductStockSnapshot(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """Track stock levels over time for a product."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_history')
     quantity = models.PositiveIntegerField()
@@ -40,6 +43,7 @@ class ProductStockSnapshot(models.Model):
         return f"{self.product.product_name} - {self.quantity} units @ {self.recorded_at}"
 
 class TopSellingProduct(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """Cached top-selling products (updated daily/hourly)."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='top_selling_records')
     units_sold = models.PositiveIntegerField(default=0)

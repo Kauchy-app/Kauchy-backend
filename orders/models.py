@@ -21,7 +21,7 @@ class Order(models.Model):
         ('expired', 'Expired - Refunded')
     ]
 
-    id = models.CharField(primary_key=True, max_length=20, unique=True, default=generate_order_id, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchases')
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sales")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -39,6 +39,7 @@ class Order(models.Model):
     is_read_by_vendor = models.BooleanField(default=False)
 
 class OrderItem(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)

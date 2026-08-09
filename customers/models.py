@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -6,6 +7,7 @@ User = settings.AUTH_USER_MODEL
 
 
 class TopCustomers(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     customer = models.ForeignKey(User, on_delete=models.CASCADE)
     total_purchases = models.PositiveBigIntegerField()
 
@@ -13,6 +15,7 @@ class TopCustomers(models.Model):
         return f"{self.customer} - {self.total_purchases}"
     
 class TopVendors(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vendor = models.ForeignKey(User, on_delete=models.CASCADE)
     total_sales = models.PositiveBigIntegerField()
 
@@ -21,6 +24,7 @@ class TopVendors(models.Model):
     
 
 class VendorProfiles(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.TextField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
@@ -33,6 +37,7 @@ class VendorProfiles(models.Model):
     
 
 class VendorContents(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='videos')
     video = models.URLField(max_length=500, blank=True, null=True)  # Changed to URLField
     pictures = models.URLField(max_length=500, blank=True, null=True)  # Changed to URLField
@@ -63,6 +68,7 @@ class VendorContents(models.Model):
 
 
 class Follow(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -100,6 +106,7 @@ class Follow(models.Model):
 
 
 class ContentLike(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_likes')
     content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='content_likes')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -126,6 +133,7 @@ class ContentLike(models.Model):
 
 
 class ContentReview(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_reviews')
     content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='content_reviews')
     comment = models.TextField(blank=True, null=True)

@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from Products_app.models import Product
@@ -7,6 +8,7 @@ User = settings.AUTH_USER_MODEL
 
 
 class ProductView(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='product_views')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='user_views')
     viewed_at = models.DateTimeField(auto_now_add=True)
@@ -23,6 +25,7 @@ class ProductView(models.Model):
 
 
 class ContentView(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_views')
     content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='user_views')
     viewed_at = models.DateTimeField(auto_now_add=True)
@@ -39,6 +42,7 @@ class ContentView(models.Model):
 
 
 class SearchQuery(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='search_queries')
     query = models.CharField(max_length=255)
     searched_at = models.DateTimeField(auto_now_add=True)

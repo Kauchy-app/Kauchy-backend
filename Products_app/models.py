@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -5,6 +6,7 @@ from django.conf import settings
 # Create your models here.
 
 class Product(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vendor_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='products')
     product_name = models.CharField(max_length=100)
     description = models.TextField()
@@ -24,6 +26,7 @@ class Product(models.Model):
 
 
 class ProductReviews(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="customer")
     rating = models.PositiveIntegerField()
@@ -31,6 +34,7 @@ class ProductReviews(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class ProductView(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product =models.ForeignKey(Product, on_delete=models.CASCADE, related_name="views")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -39,6 +43,7 @@ class ProductView(models.Model):
         unique_together = ('product', 'user')
 
 class ProductLike(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_likes")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="product_likes")
     created_at = models.DateTimeField(auto_now_add=True)

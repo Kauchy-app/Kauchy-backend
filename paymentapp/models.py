@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -5,14 +6,17 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class VendorWallet(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vendor=models.OneToOneField(User, on_delete=models.CASCADE, related_name="Vendor")
     balance=models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
 class BuyerWallet(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="Buyer")
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
 class Transaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     buyer = models.ForeignKey(BuyerWallet, on_delete=models.SET_NULL, null=True, related_name="buyer_transactions")
     vendor = models.ForeignKey(VendorWallet, on_delete=models.SET_NULL, null=True, related_name="vendor_transactions")
     # new product FK (nullable, will not break existing rows)
@@ -37,6 +41,7 @@ class Transaction(models.Model):
 
 
 class PendingPurchase(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """Stashes the intended items + amount for a CARD direct purchase ("Buy Now").
 
     For the card rail we follow an init-then-verify flow (same shape as the

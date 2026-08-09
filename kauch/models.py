@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 
@@ -9,6 +10,7 @@ MAX_KAUCHES_PER_VENDOR = 2
 
 
 class KauchModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """A Kauch acts like a WhatsApp Channel. A vendor can own up to 2 Kauches."""
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauches')
     name = models.CharField(max_length=100, null=False, blank=False)
@@ -25,6 +27,7 @@ class KauchModel(models.Model):
 
 
 class PostModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """A post within a Kauch containing text, media, and tagged products."""
     IMAGE = "image"
     VIDEO = "video"
@@ -61,6 +64,7 @@ class PostModel(models.Model):
 
 
 class PostLike(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='likes')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_post_likes')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -87,6 +91,7 @@ class PostLike(models.Model):
 
 
 class PostComment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_post_comments')
     text = models.TextField()
@@ -115,6 +120,7 @@ class PostComment(models.Model):
 
 
 class Bookmark(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """A user saves (bookmarks) a post. Server-side so it syncs across devices."""
     post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='bookmarks')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_bookmarks')
@@ -142,6 +148,7 @@ class Bookmark(models.Model):
 
 
 class KauchFollow(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     kauch = models.ForeignKey(KauchModel, on_delete=models.CASCADE, related_name='followers')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_follows')
     created_at = models.DateTimeField(auto_now_add=True)
