@@ -6,10 +6,10 @@ from rest_framework import status
 from django.db.models import Count, Q, Avg
 from datetime import timedelta
 from django.utils import timezone
-from .models import ProductView, ContentView, SearchQuery
-from .serializers import ProductViewSerializer, ContentViewSerializer, SearchQuerySerializer
+from .models import ProductView, SearchQuery
+from .serializers import ProductViewSerializer, SearchQuerySerializer
 from Products_app.models import Product
-from customers.models import VendorContents, VendorProfiles
+from customers.models import VendorProfiles
 from Products_app.serializers import ProductSerializer
 
 
@@ -38,45 +38,6 @@ class TrackProductView(APIView):
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-class TrackContentView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        content_id = request.data.get('content_id')
-        view_duration = request.data.get('view_duration', 0)
-        
-        try:
-            content = VendorContents.objects.get(id=content_id)
-            content_view, created = ContentView.objects.get_or_create(
-                user=request.user,
-                content=content,
-                defaults={'view_duration': view_duration}
-            )
-            if not created:
-                content_view.view_duration = view_duration
-                content_view.save()
-            
-            serializer = ContentViewSerializer(content_view)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except VendorContents.DoesNotExist:
-            return Response({"error": "Content not found"}, status=status.HTTP_404_NOT_FOUND)
-
-
-class RecentVideosWatchedView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        # Get recent video content views
-        recent_videos = ContentView.objects.filter(
-            user=request.user,
-            content__video__isnull=False
-        ).select_related('content', 'content__user')[:20]
-        
-        serializer = ContentViewSerializer(recent_videos, many=True, context={'request': request})
-        return Response({
-            'recent_videos': serializer.data,
-            'count': recent_videos.count()
-        }, status=status.HTTP_200_OK)
 
 
 class SearchSuggestionsView(APIView):
@@ -91,13 +52,8 @@ class SearchSuggestionsView(APIView):
             user=user
         ).values_list('product__vendor_id', flat=True).distinct()
         
-        # Get vendors from contents the user has viewed
-        viewed_content_vendors = ContentView.objects.filter(
-            user=user
-        ).values_list('content__user', flat=True).distinct()
-        
         # Combine and get unique vendor IDs
-        vendor_ids = set(list(viewed_product_vendors) + list(viewed_content_vendors))
+        vendor_ids = set(list(viewed_product_vendors))
         
         # Base query for vendors
         vendor_query = VendorProfiles.objects.filter(
@@ -207,17 +163,9 @@ class UserViewHistoryView(APIView):
             user=request.user
         ).select_related('product', 'product__vendor_id')[:20]
         
-        # Get recent content views
-        content_views = ContentView.objects.filter(
-            user=request.user
-        ).select_related('content', 'content__user')[:20]
-        
         product_serializer = ProductViewSerializer(product_views, many=True)
-        content_serializer = ContentViewSerializer(content_views, many=True, context={'request': request})
         
         return Response({
             'product_views': product_serializer.data,
-            'content_views': content_serializer.data,
-            'total_product_views': product_views.count(),
-            'total_content_views': content_views.count()
+            'total_product_views': product_views.count()
         }, status=status.HTTP_200_OK)

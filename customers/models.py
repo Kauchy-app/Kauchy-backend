@@ -36,35 +36,6 @@ class VendorProfiles(models.Model):
         return f"Profile of {self.user.email}"
     
 
-class VendorContents(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='videos')
-    video = models.URLField(max_length=500, blank=True, null=True)  # Changed to URLField
-    pictures = models.URLField(max_length=500, blank=True, null=True)  # Changed to URLField
-    caption = models.TextField(blank=True, null=True)
-    likes_count = models.PositiveIntegerField(default=0)
-    reviews_count = models.PositiveIntegerField(default=0)
-    views_count = models.PositiveIntegerField(default=0)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    def clean(self):
-        if self.video and self.pictures:
-            raise ValidationError("You can only upload either a video or pictures, not both.")
-        if not self.video and not self.pictures:
-            raise ValidationError("You must upload either a video or pictures.")
-        
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name = "User Content"
-        verbose_name_plural = "User Contents"
-        ordering = ['-uploaded_at']
-
-    def __str__(self):
-        content_type = 'Video' if self.video else 'Picture'
-        return f"{content_type} by {self.user.email} uploaded at {self.uploaded_at}"
 
 
 class Follow(models.Model):
@@ -104,67 +75,3 @@ class Follow(models.Model):
     def __str__(self):
         return f"{self.follower.email} follows {self.vendor.email}"
 
-
-class ContentLike(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_likes')
-    content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='content_likes')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('user', 'content')
-        ordering = ['-created_at']
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Update likes count
-        self.content.likes_count = self.content.content_likes.count()
-        self.content.save()
-
-    def delete(self, *args, **kwargs):
-        content = self.content
-        super().delete(*args, **kwargs)
-        # Update likes count
-        content.likes_count = content.content_likes.count()
-        content.save()
-
-    def __str__(self):
-        return f"{self.user.email} likes content {self.content.id}"
-
-
-class ContentReview(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_reviews')
-    content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='content_reviews')
-    comment = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        # unique_together = ('user', 'content')
-        ordering = ['-created_at']
-
-    def clean(self):
-        # Only buyers can review
-        if self.user.role != 'buyer':
-            raise ValidationError("Only buyers can review vendor content")
-        # Cannot review your own content
-        if self.user == self.content.user:
-            raise ValidationError("You cannot review your own content")
-
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-        # Update reviews count
-        self.content.reviews_count = self.content.content_reviews.count()
-        self.content.save()
-
-    def delete(self, *args, **kwargs):
-        content = self.content
-        super().delete(*args, **kwargs)
-        # Update reviews count
-        content.reviews_count = content.content_reviews.count()
-        content.save()
-
-    def __str__(self):
-        return f"{self.user.email} reviewed content {self.content.id}"
