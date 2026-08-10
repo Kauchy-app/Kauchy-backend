@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, ProductReviews
+from .models import Product, ProductReviews, ProductRequest, ProductRequestResponse
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
@@ -28,3 +28,26 @@ class ProductSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.product_likes.filter(user=request.user).exists()
         return False
+
+
+class ProductRequestResponseSerializer(serializers.ModelSerializer):
+    vendor_username = serializers.CharField(source='vendor.username', read_only=True)
+    vendor_avatar = serializers.URLField(source='vendor.profile_url', read_only=True)
+    product_details = ProductSerializer(source='product', read_only=True)
+
+    class Meta:
+        model = ProductRequestResponse
+        fields = '__all__'
+        read_only_fields = ['vendor', 'request', 'created_at']
+
+
+class ProductRequestSerializer(serializers.ModelSerializer):
+    customer_username = serializers.CharField(source='customer.username', read_only=True)
+    customer_avatar = serializers.URLField(source='customer.profile_url', read_only=True)
+    responses = ProductRequestResponseSerializer(many=True, read_only=True)
+    responses_count = serializers.IntegerField(source='responses.count', read_only=True)
+
+    class Meta:
+        model = ProductRequest
+        fields = '__all__'
+        read_only_fields = ['customer', 'created_at', 'is_active']
