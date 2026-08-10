@@ -8,5 +8,10 @@ urlpatterns = [
     path('<int:pk>', ProductDetailView.as_view(), name ='product-detail'),
     path('<int:pk>/like/', ProductLikeToggleView.as_view(), name='toggle-product-like'),
     path('<int:pk>/reviews/', ProductReviewListCreateView.as_view(), name='product-reviews'),
-    path('vendor-products/<int:pk>', GetVendorProducts.as_view(), name='Get vendor products')
+    path('vendor-products/<int:pk>', GetVendorProducts.as_view(), name='Get vendor products'),
+    
+    # Product Requests
+    path('requests/', ProductRequestListView.as_view(), name='product-requests-list'),
+    path('requests/<uuid:pk>/', ProductRequestDetailView.as_view(), name='product-requests-detail'),
+    path('requests/<uuid:pk>/respond/', ProductRequestResponseView.as_view(), name='product-requests-respond'),
 ]

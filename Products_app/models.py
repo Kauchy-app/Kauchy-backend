@@ -63,3 +63,34 @@ class ProductLike(models.Model):
         self.product.save(update_fields=['likes_count'])
         super().delete(*args, **kwargs)
     
+
+class ProductRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='product_requests')
+    item_name = models.CharField(max_length=255)
+    category = models.CharField(max_length=255)
+    description = models.TextField()
+    image_url = models.URLField(max_length=500, blank=True, null=True)
+    budget = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.customer.username} requested {self.item_name}"
+
+class ProductRequestResponse(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    request = models.ForeignKey(ProductRequest, on_delete=models.CASCADE, related_name='responses')
+    vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='request_responses')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.vendor.username} responded to {self.request.item_name}"

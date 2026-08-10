@@ -3,8 +3,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Product, ProductReviews, ProductView, ProductLike
-from .serializers import ProductSerializer, ProductReviewSerializer
+from .models import Product, ProductReviews, ProductView, ProductLike, ProductRequest, ProductRequestResponse
+from .serializers import ProductSerializer, ProductReviewSerializer, ProductRequestSerializer, ProductRequestResponseSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from .supabase_config import supabase
@@ -404,4 +404,104 @@ class ProductReviewListCreateView(APIView):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class ProductRequestListView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return []
+
+    def get(self, request):
+        category = request.query_params.get('category')
+        requests = ProductRequest.objects.filter(is_active=True).select_related('customer').prefetch_related('responses')
+        if category:
+            requests = requests.filter(category__iexact=category)
+        
+        serializer = ProductRequestSerializer(requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        data = request.data.copy() if hasattr(request.data, 'copy') else request.data
+        
+        image = request.FILES.get('image')
+        if image:
+            try:
+                from kauch.utils import upload_to_cloudinary
+                url = upload_to_cloudinary(image, f"product_requests/{request.user.id}")
+                if hasattr(data, '_mutable'):
+                    data._mutable = True
+                data['image_url'] = url
+            except Exception as e:
+                return Response({"error": "Failed to upload image", "details": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        serializer = ProductRequestSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(customer=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProductRequestDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            req = ProductRequest.objects.get(pk=pk)
+        except ProductRequest.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ProductRequestSerializer(req)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        try:
+            req = ProductRequest.objects.get(pk=pk)
+        except ProductRequest.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        if req.customer != request.user:
+            return Response({"error": "You can only delete your own requests."}, status=status.HTTP_403_FORBIDDEN)
+        
+        req.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductRequestResponseView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            req = ProductRequest.objects.get(pk=pk, is_active=True)
+        except ProductRequest.DoesNotExist:
+            return Response({"error": "Request not found or inactive."}, status=status.HTTP_404_NOT_FOUND)
+        
+        product_id = request.data.get('product_id')
+        message = request.data.get('message', '')
+
+        try:
+            product = Product.objects.get(pk=product_id, vendor_id=request.user)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found or doesn't belong to you."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if already responded with this product
+        if ProductRequestResponse.objects.filter(request=req, vendor=request.user, product=product).exists():
+            return Response({"error": "You have already suggested this product."}, status=status.HTTP_400_BAD_REQUEST)
+
+        response_obj = ProductRequestResponse.objects.create(
+            request=req,
+            vendor=request.user,
+            product=product,
+            message=message
+        )
+        
+        send_notification_to_user(
+            user=req.customer,
+            title="New Product Suggestion",
+            message=f"{request.user.username} suggested a product for your request '{req.item_name}'",
+            notification_type="request_response",
+            link="/requests"
+        )
+
+        serializer = ProductRequestResponseSerializer(response_obj)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
