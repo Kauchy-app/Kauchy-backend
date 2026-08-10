@@ -9,7 +9,11 @@ from paymentapp.models import Transaction, VendorWallet, BuyerWallet
 from customers.models import VendorProfiles
 from django.conf import settings
 from django.db.models import Sum
+from django.utils import timezone
 import requests
+import random
+from .models import OTPVerification
+from .utils import send_otp_email
 
 User = get_user_model()
 
@@ -48,6 +52,56 @@ class CheckEmailView(APIView):
         
         exists = User.objects.filter(email=email).exists()
         return Response({"exists": exists}, status=status.HTTP_200_OK)
+
+
+class SendOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if User.objects.filter(email=email).exists():
+            return Response({"detail": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = f"{random.randint(0, 999999):06d}"
+        
+        # update or create the OTP record
+        verification, _ = OTPVerification.objects.update_or_create(
+            email=email,
+            defaults={"otp": otp, "is_verified": False, "created_at": timezone.now()}
+        )
+        
+        success = send_otp_email(email, otp)
+        if not success:
+            return Response({"detail": "Failed to send email. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        return Response({"detail": "OTP sent successfully."}, status=status.HTTP_200_OK)
+
+
+class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email", "").strip().lower()
+        otp = request.data.get("otp", "").strip()
+
+        if not email or not otp:
+            return Response({"detail": "Email and OTP are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            verification = OTPVerification.objects.get(email=email, otp=otp)
+        except OTPVerification.DoesNotExist:
+            return Response({"detail": "Invalid OTP or email."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Check if expired (10 minutes)
+        if (timezone.now() - verification.created_at).total_seconds() > 600:
+            return Response({"detail": "OTP has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+
+        verification.is_verified = True
+        verification.save()
+        return Response({"detail": "Email verified successfully."}, status=status.HTTP_200_OK)
 
 
 class GoogleAuthView(APIView):
@@ -124,8 +178,6 @@ class CompleteProfileView(APIView):
             errors["username"] = "This username is already taken."
         if not phone:
             errors["phone"] = "Phone number is required."
-        if not institute:
-            errors["institute"] = "University is required."
         if role not in ("buyer", "vendor"):
             errors["role"] = "Role must be 'buyer' or 'vendor'."
         if errors:

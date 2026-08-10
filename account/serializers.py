@@ -5,7 +5,7 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from customers.models import VendorProfiles
-from .models import CustomUserModel
+from .models import CustomUserModel, OTPVerification
 from paymentapp.models import VendorWallet, BuyerWallet
 import requests
 from Products_app.supabase_config import supabase
@@ -33,8 +33,14 @@ class UserCreateSerializer(UserCreateSerializer):
         if not email or not role or not username:
             raise serializers.ValidationError("You must provide email,username and role.")
 
-
+        try:
+            verification = OTPVerification.objects.get(email=email)
+            if not verification.is_verified:
+                raise serializers.ValidationError({"email": "Email has not been verified."})
+        except OTPVerification.DoesNotExist:
+            raise serializers.ValidationError({"email": "Email has not been verified."})
         
+
         user = CustomUserModel(
             email=email,
             role=role,
@@ -50,6 +56,13 @@ class UserCreateSerializer(UserCreateSerializer):
             VendorProfiles.objects.create(user=user)
         elif role == 'buyer':
             BuyerWallet.objects.create(user=user, balance=0)
+            
+        # Cleanup verification record
+        try:
+            OTPVerification.objects.filter(email=email).delete()
+        except Exception:
+            pass
+            
         return user
 
 
