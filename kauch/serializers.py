@@ -6,13 +6,14 @@ from .utils import cloudinary_video_delivery
 class KauchSerializer(serializers.ModelSerializer):
     """Serializes a Kauch as defined in the API contract (section 1)."""
     owner_username = serializers.CharField(source='owner.username', read_only=True)
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
     is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = KauchModel
         fields = [
             'id', 'name', 'description', 'avatar_url',
-            'followers_count', 'created_at', 'owner_username', 'is_following',
+            'followers_count', 'created_at', 'owner_username', 'owner_id', 'is_following',
         ]
         read_only_fields = ['id', 'avatar_url', 'followers_count', 'created_at']
 
