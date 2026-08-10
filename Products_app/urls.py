@@ -8,7 +8,7 @@ urlpatterns = [
     path('<uuid:pk>', ProductDetailView.as_view(), name ='product-detail'),
     path('<uuid:pk>/like/', ProductLikeToggleView.as_view(), name='toggle-product-like'),
     path('<uuid:pk>/reviews/', ProductReviewListCreateView.as_view(), name='product-reviews'),
-    path('vendor-products/<int:pk>', GetVendorProducts.as_view(), name='Get vendor products'),
+    path('vendor-products/<uuid:pk>', GetVendorProducts.as_view(), name='Get vendor products'),
     
     # Product Requests
     path('requests/', ProductRequestListView.as_view(), name='product-requests-list'),
