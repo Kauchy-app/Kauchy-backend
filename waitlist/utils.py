@@ -16,7 +16,7 @@ def send_waitlist_welcome_email(recipient_email: str) -> bool:
     """
     api_key = os.getenv("BREVO_API_KEY")
     sender_email = os.getenv("BREVO_SENDER_EMAIL")
-    sender_name = os.getenv("BREVO_SENDER_NAME", "Upstart")
+    sender_name = os.getenv("BREVO_SENDER_NAME", "Kauchy")
     subject = os.getenv("BREVO_WAITLIST_SUBJECT", "You are on the Upstart waitlist")
 
     if not api_key or not sender_email:
