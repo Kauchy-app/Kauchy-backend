@@ -8,7 +8,6 @@ from customers.models import VendorProfiles
 from .models import CustomUserModel, OTPVerification
 from paymentapp.models import VendorWallet, BuyerWallet
 import requests
-from Products_app.supabase_config import supabase
 import uuid
 import os
 
@@ -98,18 +97,8 @@ class UserSerializer(UserSerializer):
         return super().update(instance, validated_data)
 
     def upload_profile_picture(self, file):
-        file_bytes = file.read()
-        base, ext = os.path.splitext(file.name or "file")
-        unique_name = f"{base}_{uuid.uuid4().hex}{ext}"
-        key = f"profile_pictures/{unique_name}"
-
-        supabase.storage.from_("marketplace").upload(
-            key,
-            file_bytes,
-            {"content-type": file.content_type},
-        )
-
-        return supabase.storage.from_("marketplace").get_public_url(key)
+        from kauch.utils import upload_to_cloudinary
+        return upload_to_cloudinary(file, folder="profile_pictures", resource_type="image")
 
 # class UserProfileSerializer(serializers.ModelSerializer):
 #     class Meta:

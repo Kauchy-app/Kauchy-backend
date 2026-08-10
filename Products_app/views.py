@@ -7,7 +7,6 @@ from .models import Product, ProductReviews, ProductView, ProductLike, ProductRe
 from .serializers import ProductSerializer, ProductReviewSerializer, ProductRequestSerializer, ProductRequestResponseSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
-from .supabase_config import supabase
 from notification.utils import send_notification_to_user
 import os
 import time
