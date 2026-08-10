@@ -151,6 +151,50 @@ class KauchDetailView(APIView):
         serializer = KauchSerializer(kauch, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary="Update Kauch details",
+        description="Updates Kauch name, description, and/or avatar. Only owner can update.",
+        responses={200: KauchSerializer},
+    )
+    def patch(self, request, kauch_id):
+        kauch = get_object_or_404(KauchModel, pk=kauch_id)
+        if kauch.owner != request.user:
+            return Response(
+                {"error": "Only the owner of this Kauch can edit it."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        name = request.data.get("name")
+        if name is not None:
+            name = name.strip()
+            if not name:
+                return Response(
+                    {"error": "Name cannot be empty."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            kauch.name = name
+
+        description = request.data.get("description")
+        if description is not None:
+            kauch.description = description.strip()
+
+        avatar_file = request.FILES.get("avatar")
+        if avatar_file:
+            from kauch.utils import upload_to_cloudinary
+            import cloudinary
+            try:
+                avatar_url = upload_to_cloudinary(avatar_file, f"kauch/avatars/{kauch.owner.id}", resource_type="image")
+                kauch.avatar_url = avatar_url
+            except Exception as e:
+                return Response(
+                    {"error": "Failed to upload avatar.", "details": str(e)},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+        kauch.save()
+        serializer = KauchSerializer(kauch, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class FollowingKauchesView(APIView):
     """List the Kauches the authenticated user follows (for the sidebar)."""

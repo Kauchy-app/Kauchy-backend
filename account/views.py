@@ -200,6 +200,34 @@ class CompleteProfileView(APIView):
         return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 
 
+class UpdateProfileView(APIView):
+    """Update authenticated user's profile (bio, profile picture)."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+        
+        bio = request.data.get("bio")
+        if bio is not None:
+            user.bio = bio.strip()
+            
+        avatar_file = request.FILES.get("avatar")
+        if avatar_file:
+            from kauch.utils import upload_to_cloudinary
+            import cloudinary
+            try:
+                # Update user profile picture
+                avatar_url = upload_to_cloudinary(avatar_file, f"user/avatars/{user.id}", resource_type="image")
+                user.profile_url = avatar_url
+            except Exception as e:
+                return Response(
+                    {"error": "Failed to upload avatar.", "details": str(e)},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+                
+        user.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
 class GetUserProfile(APIView):
     def get(self, request, pk):
         try:
