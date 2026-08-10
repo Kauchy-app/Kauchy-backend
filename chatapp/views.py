@@ -53,16 +53,25 @@ class MessageFileUploadView(APIView):
         if conversation.vendor != user and conversation.buyer != user:
             return Response({"message": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        from kauch.utils import detect_media_type, upload_to_cloudinary
+
+        file_url = None
+        if file:
+            try:
+                media_type = detect_media_type(file)
+                resource_type = "video" if media_type in ["video", "audio"] else "image"
+                file_url = upload_to_cloudinary(file, folder="chat_files", resource_type=resource_type)
+            except Exception as e:
+                return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         # Create message
         from .models import MessageModel
         message = MessageModel.objects.create(
             conversation=conversation,
             sender=user,
             text=text,
-            file=file
+            file=file_url
         )
-
-        file_url = message.file.url if message.file else None
 
         # Broadcast via Channels
         from channels.layers import get_channel_layer
