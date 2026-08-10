@@ -84,54 +84,15 @@ class CreateProductView(APIView):
         if not images and isinstance(data.get('image_url', None), (list, tuple)):
             images_urls = list(data.get('image_url', []))
 
-        # upload files to supabase storage (ensure unique keys to avoid 409)
+        from kauch.utils import upload_to_cloudinary
+
         for image in images:
-            # read file bytes once
-            file_bytes = image.read()
-            base, ext = os.path.splitext(image.name or "file")
-            unique_name = f"{base}_{uuid.uuid4().hex}{ext}"
-            key = f"products/{user.id}/{unique_name}"
             try:
-                supabase.storage.from_('marketplace').upload(
-                    key,
-                    file_bytes,
-                    {"content-type": image.content_type}
-                )
-            except StorageApiError as e:
-                # handle duplicate key by retrying with a more unique name
-                status_code = getattr(e, "statusCode", None)
-                msg = str(e)
-                if status_code == 409 or "Duplicate" in msg:
-                    unique_name = f"{base}_{int(time.time())}_{uuid.uuid4().hex}{ext}"
-                    key = f"products/{user.id}/{unique_name}"
-                    supabase.storage.from_('marketplace').upload(
-                        key,
-                        file_bytes,
-                        {"content-type": image.content_type}
-                    )
-                else:
-                    raise
-            except httpx.ConnectError as e:
-                # Network/DNS issue when contacting Supabase storage
-                err_msg = (
-                    "Unable to connect to Supabase storage service."
-                    " Please check SUPABASE_URL, network/DNS, and that the service is reachable."
-                )
-                # Log detail to console (server logs)
-                print("Supabase connection error:", str(e))
-                return Response({"error": err_msg, "details": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
-            # get public url and append (normalize dict/str responses)
-            url = supabase.storage.from_('marketplace').get_public_url(key)
-            # normalize possible response shapes
-            if isinstance(url, dict):
-                possible = url.get('publicURL') or url.get('public_url') or url.get('publicUrl') or url.get('url')
-                if possible:
-                    images_urls.append(possible)
-                else:
-                    # fallback to stringify
-                    images_urls.append(str(url))
-            else:
-                images_urls.append(str(url))
+                url = upload_to_cloudinary(image, f"products/{user.id}")
+                images_urls.append(url)
+            except Exception as e:
+                print("Cloudinary connection error:", str(e))
+                return Response({"error": "Unable to connect to Cloudinary storage service.", "details": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
         # Build a clean_data dict that works for both QueryDict (form) and JSON (dict)
         clean_data = {}
