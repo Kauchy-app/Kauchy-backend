@@ -191,7 +191,7 @@ LOCAL_URL = os.environ.get("LOCAL_URL")
 # ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES':[
-        'rest_framework_simplejwt.authentication.JWTAuthentication'
+        'account.authentication.CustomJWTAuthentication'
     ],
     'DEFAULT_PERMISSION_CLASSES':[],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
