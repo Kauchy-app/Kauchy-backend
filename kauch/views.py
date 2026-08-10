@@ -358,6 +358,25 @@ class PostDetailView(APIView):
         serializer = PostSerializer(post, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary="Delete a post",
+        responses={204: None},
+    )
+    def delete(self, request, post_id):
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        post = get_object_or_404(PostModel.objects.select_related('kauch'), pk=post_id)
+        
+        if post.kauch.owner != request.user:
+            return Response(
+                {"error": "Only the owner of this Kauch can delete its posts."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+            
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class PostLikeToggleView(APIView):
     """3.1 Like / unlike a post."""
