@@ -52,10 +52,10 @@ def _parse_product_ids(raw):
 
     ids = []
     for value in values:
-        try:
-            ids.append(int(value))
-        except (TypeError, ValueError):
-            continue
+        if isinstance(value, str):
+            ids.append(value.strip())
+        else:
+            ids.append(str(value))
     return ids
 
 
