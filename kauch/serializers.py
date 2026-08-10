@@ -34,7 +34,7 @@ class KauchMiniSerializer(serializers.ModelSerializer):
 
 class TaggedProductSerializer(serializers.Serializer):
     """Minimal product shape for products tagged in a post (API contract 2.1)."""
-    id = serializers.IntegerField()
+    id = serializers.UUIDField()
     product_name = serializers.CharField()
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
     image_url = serializers.JSONField()
@@ -85,7 +85,7 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class CommentUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.UUIDField()
     username = serializers.CharField()
     avatar_url = serializers.URLField(source='profile_url')
 
