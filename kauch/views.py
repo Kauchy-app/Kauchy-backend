@@ -70,7 +70,21 @@ class MyKauchesView(APIView):
     )
     def get(self, request):
         kauches = KauchModel.objects.filter(owner=request.user)
-        serializer = KauchSerializer(kauches, many=True)
+        serializer = KauchSerializer(kauches, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class VendorKauchesView(APIView):
+    """Get kauches for a specific vendor."""
+
+    @extend_schema(
+        summary="List vendor Kauches",
+        description="Returns the list of Kauches owned by a specific vendor.",
+        responses={200: KauchSerializer(many=True)},
+    )
+    def get(self, request, vendor_id):
+        kauches = KauchModel.objects.filter(owner_id=vendor_id)
+        serializer = KauchSerializer(kauches, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

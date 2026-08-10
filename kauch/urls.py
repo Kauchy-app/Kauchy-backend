@@ -14,11 +14,13 @@ from .views import (
     PostBookmarkToggleView,
     BookmarksListView,
     KauchSearchView,
+    VendorKauchesView,
 )
 
 urlpatterns = [
     path('', CreateKauchView.as_view(), name='create-kauch'),
     path('my-kauches/', MyKauchesView.as_view(), name='my-kauches'),
+    path('vendor/<str:vendor_id>/', VendorKauchesView.as_view(), name='vendor-kauches'),
     path('following/', FollowingKauchesView.as_view(), name='kauch-following'),
     path('feed/', KauchFeedView.as_view(), name='kauch-feed'),
     path('bookmarks/', BookmarksListView.as_view(), name='kauch-bookmarks'),
