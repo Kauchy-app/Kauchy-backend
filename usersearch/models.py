@@ -2,7 +2,6 @@ import uuid
 from django.db import models
 from django.conf import settings
 from Products_app.models import Product
-from customers.models import VendorContents
 
 User = settings.AUTH_USER_MODEL
 
@@ -22,23 +21,6 @@ class ProductView(models.Model):
     
     def __str__(self):
         return f"{self.user.email} viewed {self.product.product_name}"
-
-
-class ContentView(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_views')
-    content = models.ForeignKey(VendorContents, on_delete=models.CASCADE, related_name='user_views')
-    viewed_at = models.DateTimeField(auto_now_add=True)
-    view_duration = models.PositiveIntegerField(default=0, help_text="Duration in seconds")
-    
-    class Meta:
-        ordering = ['-viewed_at']
-        indexes = [
-            models.Index(fields=['user', '-viewed_at']),
-        ]
-    
-    def __str__(self):
-        return f"{self.user.email} viewed content by {self.content.user.email}"
 
 
 class SearchQuery(models.Model):
