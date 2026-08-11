@@ -9,33 +9,58 @@ from django.db import transaction as db_transaction
 from django.db.models import F
 
 class Command(BaseCommand):
-    help = 'Cleans up pending orders that are older than 2 days by deleting them and refunding buyers'
+    help = 'Cleans up pending orders that are older than 3 days by expiring them and refunding buyers'
 
     def handle(self, *args, **options):
-        two_days_ago = timezone.now() - timedelta(days=2)
-        expired_orders = Order.objects.filter(status='pending', created_at__lte=two_days_ago)
+        three_days_ago = timezone.now() - timedelta(days=3)
+        expired_orders = Order.objects.filter(status='pending', created_at__lte=three_days_ago)
 
         count = 0
+        from notification.utils import send_notification_to_user
+
         for order in expired_orders:
             with db_transaction.atomic():
+                try:
+                    locked_order = Order.objects.select_for_update().get(id=order.id, status='pending')
+                except Order.DoesNotExist:
+                    continue
+                    
                 # Refund buyer
                 try:
-                    escrow = EscrowWallet.objects.select_for_update().get(order=order)
-                    buyer_wallet = BuyerWallet.objects.select_for_update().get(user=order.buyer)
+                    escrow = EscrowWallet.objects.select_for_update().get(order=locked_order)
+                    buyer_wallet = BuyerWallet.objects.select_for_update().get(user=locked_order.buyer)
                     buyer_wallet.balance = F('balance') + escrow.amount
                     buyer_wallet.save()
                     escrow.status = "CANCELLED"
                     escrow.save()
                 except (EscrowWallet.DoesNotExist, BuyerWallet.DoesNotExist):
-                    pass # Proceed to delete order anyway
+                    pass # Proceed to expire order anyway
 
                 # Return stock
-                for item in order.items.all():
+                for item in locked_order.items.all():
                     if item.product:
                         Product.objects.filter(id=item.product.id).update(quantity=F('quantity') + item.quantity)
 
-                # Delete the order
-                order.delete()
+                # Set status to expired
+                locked_order.status = 'expired'
+                locked_order.is_read_by_buyer = False
+                locked_order.is_read_by_vendor = False
+                locked_order.save()
                 count += 1
                 
-        self.stdout.write(self.style.SUCCESS(f'Successfully deleted {count} expired orders.'))
+                send_notification_to_user(
+                    user=locked_order.buyer,
+                    title="Order Expired",
+                    message=f"Your order {locked_order.id} was not confirmed in time and has expired. You have been refunded.",
+                    notification_type="order",
+                    link=f"/orders?id={locked_order.id}"
+                )
+                send_notification_to_user(
+                    user=locked_order.vendor,
+                    title="Order Expired",
+                    message=f"Order {locked_order.id} expired automatically because it was not confirmed within 3 days.",
+                    notification_type="order",
+                    link=f"/orders?id={locked_order.id}"
+                )
+                
+        self.stdout.write(self.style.SUCCESS(f'Successfully expired {count} orders.'))

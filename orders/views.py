@@ -15,11 +15,68 @@ from django.utils import timezone
 
 # Create your views here.
 
+from datetime import timedelta
+
+def auto_reject_expired_orders(user):
+    three_days_ago = timezone.now() - timedelta(days=3)
+    expired_orders = Order.objects.filter(
+        Q(vendor=user) | Q(buyer=user),
+        status='pending',
+        created_at__lte=three_days_ago
+    )
+    for order in expired_orders:
+        with db_transaction.atomic():
+            # Refresh order from DB to ensure no race conditions
+            try:
+                locked_order = Order.objects.select_for_update().get(id=order.id, status='pending')
+            except Order.DoesNotExist:
+                continue
+                
+            try:
+                escrow = EscrowWallet.objects.select_for_update().get(order=locked_order)
+                buyer_wallet = BuyerWallet.objects.select_for_update().get(user=locked_order.buyer)
+                buyer_wallet.balance = F('balance') + escrow.amount
+                buyer_wallet.save()
+                escrow.status = "CANCELLED"
+                escrow.save()
+            except (EscrowWallet.DoesNotExist, BuyerWallet.DoesNotExist):
+                pass
+            
+            # Return stock
+            from Products_app.models import Product
+            for item in locked_order.items.all():
+                if item.product:
+                    Product.objects.filter(id=item.product.id).update(quantity=F('quantity') + item.quantity)
+            
+            # Set to expired instead of deleting
+            locked_order.status = 'expired'
+            locked_order.is_read_by_buyer = False
+            locked_order.is_read_by_vendor = False
+            locked_order.save()
+            
+            send_notification_to_user(
+                user=locked_order.buyer,
+                title="Order Expired",
+                message=f"Your order {locked_order.id} was not confirmed in time and has expired. You have been refunded.",
+                notification_type="order",
+                link=f"/orders?id={locked_order.id}"
+            )
+            send_notification_to_user(
+                user=locked_order.vendor,
+                title="Order Expired",
+                message=f"Order {locked_order.id} expired automatically because it was not confirmed within 3 days.",
+                notification_type="order",
+                link=f"/orders?id={locked_order.id}"
+            )
 
 class GetAllOrders(APIView):
     permission_classes=[IsAuthenticated]
     def get(self, request):
         user = request.user
+        
+        # Lazy expiration check
+        auto_reject_expired_orders(user)
+
         data = Order.objects.filter(
             Q(vendor=user) | Q(buyer=user)
         ).select_related("vendor", "buyer").prefetch_related("items", "items__product").order_by('-created_at')
@@ -175,9 +232,9 @@ class VendorRespondOrderView(APIView):
                     if item.product:
                         Product.objects.filter(id=item.product.id).update(quantity=F('quantity') + item.quantity)
 
-                # The user specified: "orders are automatically deleted after 2-days"
-                # If they manually reject, we can either delete or set status to expired. Let's delete it so it matches "deleted"
-                order.delete()
+                order.status = 'expired'
+                order.is_read_by_buyer = False
+                order.save()
 
                 send_notification_to_user(
                     user=order.buyer,
@@ -186,7 +243,7 @@ class VendorRespondOrderView(APIView):
                     notification_type="order",
                     link=f"/orders?id={order_id}"
                 )
-                return Response({"message": "Order rejected and deleted. Buyer refunded.", "status": "deleted"})
+                return Response({"message": "Order rejected. Buyer refunded.", "status": "expired"})
 
 class MarkOrderReadView(APIView):
     permission_classes = [IsAuthenticated]
