@@ -23,22 +23,22 @@ def link_preview(request):
     ])
     
     # Only redirect if it's NOT a bot
-    redirect_meta = '' if is_bot else '<meta http-equiv="refresh" content="0;url=https://upstart-e9ry.onrender.com/vendor-profile.html?vendorId=' + vendor_id + '">'
+    redirect_meta = '' if is_bot else '<meta http-equiv="refresh" content="0;url=https://kauchy.com/vendor-profile?vendorId=' + vendor_id + '">'
     
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <!-- Open Graph (for WhatsApp, Facebook, etc.) -->
-        <meta property="og:title" content="{vendor_info.username} Profile - Upstart">
+        <meta property="og:title" content="{vendor_info.username} Profile - Kauchy">
         <meta property="og:description" content="{vendor_info.bio}">
         <meta property="og:image" content="{image_url}">
-        <meta property="og:url" content="http://127.0.0.1:8000/vendor-profile?vendorId={vendor_id}">
+        <meta property="og:url" content="https://kauchy.com/vendor-profile?vendorId={vendor_id}">
         <meta property="og:type" content="profile">
         
         <!-- Twitter Card tags -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="{vendor_info.username} Profile - Upstart">
+        <meta name="twitter:title" content="{vendor_info.username} Profile - Kauchy">
         <meta name="twitter:description" content="{vendor_info.bio}">
         <meta name="twitter:image" content="{image_url}">
         
